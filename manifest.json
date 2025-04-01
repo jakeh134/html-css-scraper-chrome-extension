@@ -1,0 +1,10 @@
+{
+    "manifest_version": 3,
+    "name": "HTML/CSS Scraper",
+    "version": "1.0",
+    "description": "Educational tool to scrape and view HTML and CSS from websites",
+    "permissions": ["activeTab", "scripting"],
+    "action": {
+      "default_popup": "popup.html"
+    }
+}
