@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>HTML/CSS Scraper</title>
+  <!-- Link to the extension's stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Main container for the popup interface -->
+  <div class="container">
+    <!-- Header with extension title -->
+    <h1>HTML/CSS Scraper</h1>
+    
+    <!-- Button container for main actions -->
+    <div class="button-container">
+      <!-- Button to scrape HTML from current page -->
+      <button id="scrapeHTML">Get HTML</button>
+      <!-- Button to scrape CSS from current page -->
+      <button id="scrapeCSS">Get CSS</button>
+      <!-- Button to download scraped data -->
+      <button id="downloadData">Download Data</button>
+    </div>
+    
+    <!-- Output section for displaying scraped data -->
+    <div class="output-container">
+      <!-- Header for output section with title and copy button -->
+      <div class="output-header">
+        <h2 id="outputTitle">Output</h2>
+        <span id="copyButton" title="Copy to clipboard">Copy</span>
+      </div>
+      <!-- Pre-formatted area for displaying scraped content -->
+      <pre id="output">Click one of the buttons above to scrape data...</pre>
+    </div>
+  </div>
+  <!-- Link to the popup's JavaScript file -->
+  <script src="popup.js"></script>
+</body>
+</html>

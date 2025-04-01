@@ -1,0 +1,90 @@
+/* styles.css */
+/* Main styles for the extension popup */
+
+/* Base styles for the popup body */
+body {
+    font-family: Arial, sans-serif;
+    width: 600px;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Container for all popup content */
+  .container {
+    padding: 15px;
+  }
+  
+  /* Main heading styles */
+  h1 {
+    color: #333;
+    font-size: 18px;
+    margin-top: 0;
+  }
+  
+  /* Container for action buttons */
+  .button-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+  
+  /* Common button styles */
+  button {
+    background-color: #4285f4;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  
+  /* Button hover state */
+  button:hover {
+    background-color: #3367d6;
+  }
+  
+  /* Container for output display */
+  .output-container {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f5f5f5;
+  }
+  
+  /* Header section of output container */
+  .output-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 15px;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  /* Output title styles */
+  h2 {
+    font-size: 16px;
+    margin: 10px 0;
+  }
+  
+  /* Copy button styles */
+  #copyButton {
+    cursor: pointer;
+    color: #4285f4;
+    font-size: 14px;
+  }
+  
+  /* Copy button hover state */
+  #copyButton:hover {
+    text-decoration: underline;
+  }
+  
+  /* Pre-formatted output area styles */
+  pre {
+    margin: 0;
+    padding: 15px;
+    white-space: pre-wrap;
+    overflow-y: auto;
+    max-height: 400px;
+    font-size: 14px;
+    line-height: 1.4;
+  }
