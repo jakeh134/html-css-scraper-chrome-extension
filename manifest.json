@@ -3,8 +3,23 @@
     "name": "HTML/CSS Scraper",
     "version": "1.0",
     "description": "Educational tool to scrape and view HTML and CSS from websites",
-    "permissions": ["activeTab", "scripting"],
+    "permissions": [
+        "activeTab",
+        "scripting"
+    ],
+    "host_permissions": [
+        "*://*/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": ["<all_urls>"],
+            "js": ["content.js"]
+        }
+    ],
     "action": {
-      "default_popup": "popup.html"
+        "default_popup": "popup.html"
     }
 }

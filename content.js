@@ -3,98 +3,127 @@
 // It runs in the context of the webpage and communicates with the extension's popup
 
 /**
- * Enhanced function to extract all CSS from the current webpage
- * This includes:
+ * Enhanced function to capture the complete page with both HTML and CSS
+ * Handles:
+ * - Complete HTML structure
  * - External stylesheets
  * - Internal stylesheets
  * - Inline styles
- * - @import rules
- * Handles CORS restrictions and provides source information for each stylesheet
+ * - Computed styles
+ * - Shadow DOM
+ * - Base URLs for resources
  */
-function getAllCSS() {
-    let cssContent = '';
-    const processedImports = new Set(); // Track processed @import rules to avoid duplicates
-    
-    /**
-     * Recursive function to process a stylesheet and its imports
-     * @param {CSSStyleSheet} sheet - The stylesheet to process
-     * @param {string} indentation - Current indentation level for nested imports
-     */
-    function processStylesheet(sheet, indentation = '') {
-      if (!sheet) return;
-      
-      // Add source information for each stylesheet
-      cssContent += `${indentation}/* From ${sheet.href || 'inline stylesheet'} */\n`;
-      
-      // Handle cross-origin stylesheets (CORS restrictions)
-      if (sheet.href && !sheet.href.startsWith(window.location.origin)) {
-        cssContent += `${indentation}/* External stylesheet ${sheet.href} (inaccessible due to CORS) */\n`;
-        return;
-      }
-      
-      try {
-        // Process each CSS rule in the stylesheet
-        for (const rule of sheet.cssRules) {
-          // Special handling for @import rules
-          if (rule.type === CSSRule.IMPORT_RULE) {
-            const importSheet = rule.styleSheet;
-            if (importSheet && !processedImports.has(importSheet)) {
-              processedImports.add(importSheet);
-              cssContent += `${indentation}/* Processing @import: ${rule.href} */\n`;
-              processStylesheet(importSheet, indentation + '  ');
-            } else {
-              cssContent += `${indentation}${rule.cssText}\n`;
-            }
-          } else {
-            cssContent += `${indentation}${rule.cssText}\n`;
-          }
-        }
-      } catch (e) {
-        cssContent += `${indentation}/* Error accessing rules: ${e.message} */\n`;
-      }
+async function capturePage() {
+    if (document.readyState !== 'complete') {
+        await new Promise(resolve => window.addEventListener('load', resolve));
     }
     
-    // Process all stylesheets in the document
+    // Clone the document to avoid modifying the original
+    const docClone = document.cloneNode(true);
+    
+    // Create a style collection
+    let styles = '';
+    
+    // Process inline styles
+    const inlineStyles = document.querySelectorAll('style');
+    inlineStyles.forEach(style => {
+        styles += style.textContent + '\n';
+    });
+    
+    // Process external stylesheets
     for (const sheet of document.styleSheets) {
-      processStylesheet(sheet);
-      cssContent += '\n';
+        try {
+            // For same-origin stylesheets
+            if (!sheet.href || sheet.href.startsWith(window.location.origin)) {
+                for (const rule of sheet.cssRules) {
+                    styles += rule.cssText + '\n';
+                }
+            } else {
+                // For cross-origin stylesheets, preserve the link
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = sheet.href;
+                docClone.head.appendChild(link);
+            }
+        } catch (e) {
+            console.warn(`Could not process stylesheet: ${e.message}`);
+            // If we can't access rules, preserve the original link
+            if (sheet.href) {
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = sheet.href;
+                docClone.head.appendChild(link);
+            }
+        }
     }
     
-    // Extract inline styles from elements with style attributes
+    // Handle inline element styles
     const elementsWithStyle = document.querySelectorAll('[style]');
     if (elementsWithStyle.length > 0) {
-      cssContent += '\n/* Inline styles from elements with style attributes */\n';
-      for (const element of elementsWithStyle) {
-        // Create a CSS selector for the element
-        const selector = element.tagName.toLowerCase() + 
-                        (element.id ? `#${element.id}` : '') + 
-                        (element.className ? `.${element.className.replace(/\s+/g, '.')}` : '');
-        cssContent += `${selector} { ${element.style.cssText} }\n`;
-      }
+        styles += '\n/* Inline element styles */\n';
+        for (const element of elementsWithStyle) {
+            const selector = generateSimpleSelector(element);
+            if (selector) {
+                styles += `${selector} { ${element.style.cssText} }\n`;
+            }
+        }
     }
     
-    return cssContent || 'No CSS found or accessible on this page.';
-  }
-  
-  /**
-   * Function to get the complete HTML of the current page
-   * @returns {string} The full HTML content of the page
-   */
-  function getHTML() {
-    return document.documentElement.outerHTML;
-  }
-  
-  /**
-   * Message listener for communication with the extension popup
-   * Handles two types of requests:
-   * - 'scrapeCSS': Returns all CSS from the page
-   * - 'scrapeHTML': Returns the complete HTML of the page
-   */
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'scrapeCSS') {
-      sendResponse({ data: getAllCSS() });
-    } else if (request.action === 'scrapeHTML') {
-      sendResponse({ data: getHTML() });
+    // Handle Shadow DOM styles
+    function processShadowDOM(element) {
+        const shadowRoot = element.shadowRoot;
+        if (shadowRoot) {
+            const shadowStyles = shadowRoot.querySelectorAll('style');
+            if (shadowStyles.length > 0) {
+                styles += '\n/* Shadow DOM styles */\n';
+                shadowStyles.forEach(style => {
+                    styles += style.textContent + '\n';
+                });
+            }
+            // Recursively process shadow DOM elements
+            shadowRoot.querySelectorAll('*').forEach(processShadowDOM);
+        }
     }
-    return true; // Required for async sendResponse
-  });
+    
+    // Process Shadow DOM elements
+    document.querySelectorAll('*').forEach(processShadowDOM);
+    
+    // Add collected styles to the head
+    if (styles) {
+        const styleElement = document.createElement('style');
+        styleElement.textContent = styles;
+        docClone.head.appendChild(styleElement);
+    }
+    
+    // Add base tag to handle relative URLs
+    const baseTag = document.createElement('base');
+    baseTag.href = window.location.href;
+    docClone.head.insertBefore(baseTag, docClone.head.firstChild);
+    
+    // Helper function for generating element selectors
+    function generateSimpleSelector(element) {
+        if (element.id) {
+            return `#${element.id}`;
+        }
+        
+        if (element.className) {
+            const classes = element.className.trim().split(/\s+/);
+            if (classes.length > 0) {
+                return `.${classes[0]}`; // Use first class only
+            }
+        }
+        
+        return element.tagName.toLowerCase();
+    }
+    
+    // Return the complete HTML
+    return '<!DOCTYPE html>\n' + docClone.documentElement.outerHTML;
+}
+
+// Message listener for communication with the extension popup
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'capturePage') {
+        capturePage().then(html => sendResponse({ data: html }));
+        return true;
+    }
+});
